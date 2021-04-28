@@ -26,69 +26,18 @@ npm install
 
 ## Usage
 
-### Start MySQL
-
-Start MySQL docker instance.
-
 ```bash
-docker run --name some-mysql -d -p 3306:3306 -e "MYSQL_ROOT_PASSWORD=Admin12345" -e "MYSQL_USER=usr" -e "MYSQL_PASSWORD=User12345" -e "MYSQL_DATABASE=development" bitnami/mysql:5.7.27
-```
+# start mysql, eventstore and add persistent subscriptions
+docker-compose up
 
-Connect using MySQL docker instance command line.
-
-```bash
-docker exec -it some-mysql mysql -uroot -p"Admin12345"
-```
-
-Create the Databases for testing
-
-```sql
-CREATE DATABASE service_user;
-GRANT ALL PRIVILEGES ON service_user.* TO 'usr'@'%';
-
-CREATE DATABASE service_account;
-GRANT ALL PRIVILEGES ON service_account.* TO 'usr'@'%';
-FLUSH PRIVILEGES;
-```
-
-Clean-up all data if need to re-testing again
-
-```sql
-DELETE FROM service_account.ACCOUNT;
-DELETE FROM service_user.USER;
-```
-
-### Start EventStore
-
-```bash
-docker run --name some-eventstore -d -p 2113:2113 -p 1113:1113 eventstore/eventstore
-```
-
-Create the Persistent Subscriptions
-
-```bash
-curl -L -X PUT "http://localhost:2113/subscriptions/%24svc-user/account" \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Basic YWRtaW46Y2hhbmdlaXQ=" \
-  -d "{}"
-
-curl -L -X PUT "http://localhost:2113/subscriptions/%24svc-account/user" \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Basic YWRtaW46Y2hhbmdlaXQ=" \
-  -d "{}"
-```
-
-### Start the microservices
-
-```bash
 # Start the user service
-nest start service-user
+nest start service-user -w
 
 # Start the account service
-nest start service-account
+nest start service-account -w
 
 # start the gateway
-nest start gateway
+nest start gateway -w
 ```
 
 ## Testing
@@ -105,39 +54,6 @@ mutation {
   }
 }
 ```
-
-OR
-
-```bash
-curl -X POST -H 'Content-Type: application/json' \
--d '{"query": "mutation { createUser(input: { name: \"John\" }) { id name } }"}' \
-http://localhost:3000/graphql
-```
-
-You should see something like this
-
-1. Under `service-user` console
-
-   ```sql
-   Async CreateUserHandler... CreateUserCommand
-   query: START TRANSACTION
-   query: INSERT INTO `USER`(`id`, `name`, `nickName`, `status`) VALUES (?, ?, DEFAULT, DEFAULT) -- PARAMETERS: ["4d04689b-ef40-4a08-8a27-6fa420790ddb","John"]
-   query: SELECT `User`.`id` AS `User_id`, `User`.`status` AS `User_status` FROM `USER` `User` WHERE `User`.`id` = ? -- PARAMETERS: ["4d04689b-ef40-4a08-8a27-6fa420790ddb"]
-   query: COMMIT
-   Async ActivateUserHandler... ActivateUserCommand
-   query: UPDATE `USER` SET `status` = ? WHERE `id` IN (?) -- PARAMETERS: ["A","4d04689b-ef40-4a08-8a27-6fa420790ddb"]
-   ```
-
-1. under `service-account` console
-
-   ```sql
-   Async CreateAccountHandler... CreateAccountCommand
-   query: START TRANSACTION
-   query: INSERT INTO `ACCOUNT`(`id`, `name`, `balance`, `userId`) VALUES (?, ?, DEFAULT, ?) -- PARAMETERS: ["57c3cc9e-4aa9-4ea8-8c7f-5d4653ee709f","Saving","4d04689b-ef40-4a08-8a27-6fa420790ddb"]
-   query: SELECT `Account`.`id` AS `Account_id`, `Account`.`balance` AS `Account_balance` FROM `ACCOUNT` `Account` WHERE `Account`.`id` = ? -- PARAMETERS: ["57c3cc9e-4aa9-4ea8-8c7f-5d4653ee709f"]
-   query: COMMIT
-   ```
-
 ### Query the users
 
 ```graphql
@@ -149,37 +65,17 @@ query {
       id
       name
       balance
-    }
-  }
-}
-```
-
-OR
-
-```bash
-curl -X POST -H 'Content-Type: application/json' \
--d '{"query": "query { users { id name accounts { id name balance } } }"}' \
-http://localhost:3000/graphql
-```
-
-Output :
-
-```json
-{
-  "data": {
-    "users": [
-      {
-        "id": "4d04689b-ef40-4a08-8a27-6fa420790ddb",
-        "name": "John",
-        "accounts": [
-          {
-            "id": "57c3cc9e-4aa9-4ea8-8c7f-5d4653ee709f",
-            "name": "Saving",
-            "balance": 0
+      user {
+        name
+        accounts {
+          user {
+            accounts {
+              name
+            }
           }
-        ]
+        }
       }
-    ]
+    }
   }
 }
 ```
