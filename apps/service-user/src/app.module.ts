@@ -7,7 +7,7 @@ import { UserModule } from './user/user.module';
 
 const databaseUrl =
   process.env.DATABASE_URL ||
-  'mysql://usr:User12345@localhost:3306/service_user';
+  'postgresql://usr:User12345@localhost:5432/service_user';
 
 @Module({
   imports: [
@@ -28,7 +28,7 @@ const databaseUrl =
       },
     }),
     TypeOrmModule.forRoot({
-      type: 'mysql',
+      type: 'postgres',
       url: databaseUrl,
       database: databaseUrl.split('/').pop(),
       entities: [User],
