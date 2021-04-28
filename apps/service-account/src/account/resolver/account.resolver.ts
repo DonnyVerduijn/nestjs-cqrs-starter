@@ -2,8 +2,8 @@ import {
   Args,
   Mutation,
   Parent,
-  ResolveProperty,
-  Resolver,
+  ResolveField,
+  Resolver
 } from '@nestjs/graphql';
 import { CreateAccountInput } from '../input/create-account.input';
 import { Account } from '../model/account.model';
@@ -19,7 +19,7 @@ export class AccountResolver {
     return this.accountService.create(input);
   }
 
-  @ResolveProperty(() => User)
+  @ResolveField(() => User)
   user(@Parent() account: Account) {
     return { __typename: 'User', id: account.userId };
   }
