@@ -5,6 +5,8 @@ import { GraphQLGatewayModule } from '@nestjs/graphql';
   imports: [
     GraphQLGatewayModule.forRoot({
       gateway: {
+        experimental_pollInterval: 1000,
+        __exposeQueryPlanExperimental: true,
         serviceList: [
           {
             name: 'user',
