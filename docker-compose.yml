@@ -1,0 +1,49 @@
+version: '3.4'
+
+services:
+  init_subs:
+    build: .
+    command: "dockerize -wait http://eventstore:2113 -timeout 60s ./add-subscriptions.sh"     
+    volumes:
+      - ./add-subscriptions.sh:/add-subscriptions.sh
+  db:
+    image: postgres
+    environment:
+      - POSTGRES_ROOT_PASSWORD=Admin12345
+      - POSTGRES_PASSWORD=User12345
+      - POSTGRES_USER=usr
+      - POSTGRES_DB=development
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./migrate.sql:/docker-entrypoint-initdb.d/1.sql
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
+  eventstore:
+    image: eventstore/eventstore:21.2.0-buster-slim
+    environment:
+      - EVENTSTORE_CLUSTER_SIZE=1
+      - EVENTSTORE_RUN_PROJECTIONS=All
+      - EVENTSTORE_START_STANDARD_PROJECTIONS=true
+      - EVENTSTORE_EXT_TCP_PORT=1113
+      - EVENTSTORE_EXT_HTTP_PORT=2113
+      - EVENTSTORE_INSECURE=true
+      - EVENTSTORE_ENABLE_EXTERNAL_TCP=true
+      - EVENTSTORE_ENABLE_ATOM_PUB_OVER_HTTP=true
+    ports:
+      - "1113:1113"
+      - "2113:2113"
+    volumes:
+      - type: volume
+        source: eventstore-volume-data
+        target: /var/lib/eventstore
+      - type: volume
+        source: eventstore-volume-logs
+        target: /var/log/eventstore
+
+volumes:
+  eventstore-volume-data:
+  eventstore-volume-logs:
