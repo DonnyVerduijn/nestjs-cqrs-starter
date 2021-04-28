@@ -7,7 +7,7 @@ import { AccountService } from '../service/account.service';
 export class UserResolver {
   constructor(private readonly accountService: AccountService) {}
 
-  @ResolveField(() => [Account])
+  @ResolveField(() => [Account], { complexity: 1 })
   accounts(@Parent() user: User) {
     return this.accountService.findByUserId(user.id);
   }
